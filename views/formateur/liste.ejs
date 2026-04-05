@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Formateurs – Ecole du Cinéma de Toulouse</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+<body>
+
+  <%- include('../partials/navbar') %>
+
+  <main>
+    <section class="liste-section">
+      <div class="liste-header">
+        <h2 class="liste-titre">Formateurs</h2>
+        <div class="liste-actions">
+          <input id="searchInput" type="text" placeholder="Rechercher..." class="liste-search" oninput="fetchFormateur(1)">
+          <a href="/formateur/ajouter" class="btn-liste-ajouter">+ Ajouter</a>
+        </div>
+      </div>
+
+      <div class="liste-wrapper">
+        <table class="liste-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Prénom</th>
+              <th>Nom</th>
+              <th>E-mail</th>
+              <th>Téléphone</th>
+              <th>Infos complémentaires</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="formateurTable">
+          </tbody>
+        </table>
+
+        <nav class="liste-pagination">
+          <ul id="pagination"></ul>
+        </nav>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../partials/footer') %>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let allFormateur = [];
+    let currentPage = 1;
+    let totalPages = 1;
+
+    async function fetchFormateur(page = 1) {
+      try {
+        const searchTerm = document.getElementById('searchInput').value || '';
+        const response = await fetch(`/api/formateur?page=${page}&limit=10&search=${encodeURIComponent(searchTerm)}`);
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Erreur serveur.');
+        allFormateur = result.formateur || [];
+        totalPages = result.pagination?.totalPages || 1;
+        currentPage = result.pagination?.page || 1;
+        renderTable();
+        renderPagination();
+      } catch (error) {
+        document.getElementById('formateurTable').innerHTML =
+          `<tr><td colspan="7" class="liste-vide">Erreur : ${error.message}</td></tr>`;
+      }
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('formateurTable');
+      tbody.innerHTML = '';
+      if (!allFormateur.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="liste-vide">Aucun formateur trouvé</td></tr>`;
+        return;
+      }
+      allFormateur.forEach(f => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${f.id_formateur}</td>
+          <td>${f.prenom}</td>
+          <td>${f.nom}</td>
+          <td>${f.email || '—'}</td>
+          <td>${f.telephone || '—'}</td>
+          <td>${f.info_complementaires || '—'}</td>
+          <td class="liste-btns">
+            <a href="/formateur/modifier/${f.id_formateur}" class="btn-table-modifier">Modifier</a>
+            <button class="btn-table-supprimer-orange" onclick="supprimerFormateur(${f.id_formateur})">Supprimer</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function renderPagination() {
+      const container = document.getElementById('pagination');
+      container.innerHTML = '';
+      for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = i === currentPage ? 'actif' : '';
+        li.innerHTML = `<button onclick="fetchFormateur(${i})">${i}</button>`;
+        container.appendChild(li);
+      }
+    }
+
+    async function supprimerFormateur(id) {
+      if (!confirm('Voulez-vous vraiment supprimer ce formateur ?')) return;
+      try {
+        const response = await fetch(`/api/formateur/${id}`, { method: 'DELETE' });
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'Erreur suppression');
+        }
+        fetchFormateur(currentPage);
+      } catch (err) {
+        alert('Erreur : ' + err.message);
+      }
+    }
+
+    fetchFormateur();
+  </script>
+</body>
+</html>

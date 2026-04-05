@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
+</head>
+<body>
+  <%- include('../partials/navbar'); %>
+
+  <div class="container mt-5">
+    <h1 class="mb-4"><%= title %></h1>
+
+     <a href="/users/ajouter" class="btn btn-primary mb-3">Ajouter un utilisateur</a>
+
+    <!-- Table des utilisateurs -->
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Prénom</th>
+          <th>Email</th>
+          <th>Rôle</th>
+          <th>Status</th>
+          <th>Téléphone</th>
+          <th>Adresse</th>
+        
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="usersTable"></tbody>
+    </table>
+  </div>
+
+  <script>
+    async function fetchUsers() {
+      try {
+        const res = await fetch('/api/users');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+
+        const tbody = document.getElementById('usersTable');
+        tbody.innerHTML = '';
+
+        data.users.forEach(user => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${user.nom || ''}</td>
+            <td>${user.prenom || ''}</td>
+            <td>${user.email}</td>
+            <td>${user.role}</td>
+            <td>${user.status}</td>
+            <td>${user.phone || ''}</td>
+            <td>${user.adresse || ''}</td>
+           
+            
+            <td>
+             <a href="/users/modifier/${user.id}" class="btn btn-warning btn-sm">Modifier</a>
+             <button class="btn btn-danger btn-sm" onclick="supprimer('${user.id}')">Supprimer</button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (err) {
+        console.error('Erreur API :', err);
+        alert(err.message);
+      }
+    }
+
+    async function supprimer(id) {
+      if (!confirm('Voulez-vous vraiment supprimer cet utilisateur ?')) return;
+      try {
+        const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        fetchUsers();
+      } catch (err) {
+        alert('Erreur : ' + err.message);
+      }
+    }
+
+    function modifier(id) {
+      const newEmail = prompt('Entrez le nouvel email :');
+      if (!newEmail) return;
+      fetch(`/api/users/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newEmail })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) fetchUsers();
+        else alert(data.message);
+      })
+      .catch(err => alert(err.message));
+    }
+
+    
+    // Charger les utilisateurs au chargement
+    fetchUsers();
+
+    
+  </script>
+    <%- include('../partials/footer'); %>
+</body>
+</html>

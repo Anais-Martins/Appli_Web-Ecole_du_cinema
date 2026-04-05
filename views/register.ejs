@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Utilisateurs – Ecole du Cinéma de Toulouse</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+<body>
+
+  <%- include('partials/navbar') %>
+
+  <main>
+    <section class="liste-section">
+      <div class="liste-header">
+        <h2 class="liste-titre">Utilisateurs</h2>
+        <div class="liste-actions">
+          <input id="searchInput" type="text" placeholder="Rechercher..." class="liste-search" oninput="fetchUsers(1)">
+          <button class="btn-liste-ajouter" onclick="afficherFormulaire()">+ Ajouter</button>
+        </div>
+      </div>
+
+      <!-- Liste -->
+      <div class="liste-wrapper" id="section-liste">
+        <table class="liste-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Identifiant</th>
+              <th>Rôle</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable"></tbody>
+        </table>
+        <nav class="liste-pagination">
+          <ul id="pagination"></ul>
+        </nav>
+      </div>
+
+      <!-- Formulaire ajouter / modifier -->
+      <div id="section-formulaire" style="display:none; max-width:540px; margin-top:1.5rem;">
+        <div class="formulaire-card">
+          <div class="formulaire-card-header" id="form-titre">Ajouter un utilisateur</div>
+          <div class="formulaire-card-body">
+            <div id="form-message"></div>
+            <input type="hidden" id="user-id">
+
+            <div class="formulaire-champ">
+              <label for="username">Identifiant</label>
+              <input type="text" id="username" placeholder="PrenomNom">
+            </div>
+            <div class="formulaire-champ">
+              <label for="mot_de_passe">
+                Mot de passe
+                <span id="mdp-hint" style="font-size:0.75rem; color:#aaa; display:none;">
+                  (laisser vide pour ne pas changer)
+                </span>
+              </label>
+              <input type="password" id="mot_de_passe" placeholder="Mot de passe">
+            </div>
+            <div class="formulaire-champ">
+              <label for="role">Rôle</label>
+              <select id="role" class="formulaire-select">
+                <option value="apprenant">Apprenant</option>
+                <option value="formateur">Formateur</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+
+            <div class="formulaire-footer">
+              <button class="btn-formulaire-retour" onclick="annulerFormulaire()">← Retour</button>
+              <button class="btn-formulaire-submit" onclick="soumettreUser()">Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <%- include('partials/footer') %>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let currentPage = 1;
+    let totalPages = 1;
+    let modeModif = false;
+
+    async function fetchUsers(page = 1) {
+      try {
+        const search = document.getElementById('searchInput').value || '';
+        const res = await fetch(`/api/user?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
+        const result = await res.json();
+        if (!result.success) throw new Error(result.message);
+
+        const users = result.users || [];
+        totalPages = result.pagination?.totalPages || 1;
+        currentPage = result.pagination?.page || 1;
+
+        renderTable(users);
+        renderPagination();
+      } catch (err) {
+        document.getElementById('usersTable').innerHTML =
+          `<tr><td colspan="4" class="liste-vide">Erreur : ${err.message}</td></tr>`;
+      }
+    }
+
+    function renderTable(users) {
+      const tbody = document.getElementById('usersTable');
+      tbody.innerHTML = '';
+      if (!users.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="liste-vide">Aucun utilisateur trouvé</td></tr>`;
+        return;
+      }
+      users.forEach(u => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${u.id_user}</td>
+            <td>${u.username}</td>
+            <td>${u.role}</td>
+            <td class="liste-btns">
+              <button class="btn-table-modifier" onclick="modifierUser(${u.id_user}, '${u.username}', '${u.role}')">Modifier</button>
+              <button class="btn-table-supprimer-orange" onclick="supprimerUser(${u.id_user})">Supprimer</button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    function renderPagination() {
+      const container = document.getElementById('pagination');
+      container.innerHTML = '';
+      for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = i === currentPage ? 'actif' : '';
+        li.innerHTML = `<button onclick="fetchUsers(${i})">${i}</button>`;
+        container.appendChild(li);
+      }
+    }
+
+    function afficherFormulaire() {
+      modeModif = false;
+      document.getElementById('form-titre').textContent = 'Ajouter un utilisateur';
+      document.getElementById('user-id').value = '';
+      document.getElementById('username').value = '';
+      document.getElementById('mot_de_passe').value = '';
+      document.getElementById('role').value = 'apprenant';
+      document.getElementById('mdp-hint').style.display = 'none';
+      document.getElementById('form-message').innerHTML = '';
+      document.getElementById('section-formulaire').style.display = 'block';
+      document.getElementById('section-liste').style.display = 'none';
+    }
+
+    function modifierUser(id, username, role) {
+      modeModif = true;
+      document.getElementById('form-titre').textContent = 'Modifier un utilisateur';
+      document.getElementById('user-id').value = id;
+      document.getElementById('username').value = username;
+      document.getElementById('mot_de_passe').value = '';
+      document.getElementById('role').value = role;
+      document.getElementById('mdp-hint').style.display = 'inline';
+      document.getElementById('form-message').innerHTML = '';
+      document.getElementById('section-formulaire').style.display = 'block';
+      document.getElementById('section-liste').style.display = 'none';
+    }
+
+    function annulerFormulaire() {
+      document.getElementById('section-formulaire').style.display = 'none';
+      document.getElementById('section-liste').style.display = 'block';
+    }
+
+    async function soumettreUser() {
+      const messageDiv = document.getElementById('form-message');
+      const id = document.getElementById('user-id').value;
+      const username = document.getElementById('username').value;
+      const mot_de_passe = document.getElementById('mot_de_passe').value;
+      const role = document.getElementById('role').value;
+
+      const data = { username, role };
+      if (mot_de_passe) data.mot_de_passe = mot_de_passe;
+
+      try {
+        const url = modeModif ? `/api/user/${id}` : '/api/user';
+        const method = modeModif ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+        if (result.success) {
+          messageDiv.innerHTML = `<p class="formulaire-succes">${result.message}</p>`;
+          setTimeout(() => {
+            annulerFormulaire();
+            fetchUsers(currentPage);
+          }, 800);
+        } else {
+          messageDiv.innerHTML = `<p class="formulaire-erreur">Erreur : ${result.message}</p>`;
+        }
+      } catch (err) {
+        messageDiv.innerHTML = `<p class="formulaire-erreur">Erreur : ${err.message}</p>`;
+      }
+    }
+
+    async function supprimerUser(id) {
+      if (!confirm('Voulez-vous vraiment supprimer cet utilisateur ?')) return;
+      try {
+        const res = await fetch(`/api/user/${id}`, { method: 'DELETE' });
+        const result = await res.json();
+        if (result.success) fetchUsers(currentPage);
+        else alert('Erreur : ' + result.message);
+      } catch (err) {
+        alert('Erreur : ' + err.message);
+      }
+    }
+
+    fetchUsers();
+  </script>
+</body>
+</html>

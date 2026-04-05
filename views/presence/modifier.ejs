@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Modifier la présence</title>
+    <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <%- include('../partials/navbar'); %>
+
+    <div class="container mt-5">
+        <h1 class="mb-4">Modifier la présence</h1>
+
+        <form id="modifierForm">
+            <div class="mb-3">
+                <label for="presence" class="form-label">Présence</label>
+                <input type="boolean" class="form-control" id="presence" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="id_cours" class="form-label">Id cours</label>
+                <input type="boolean" class="form-control" id="id_cours" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="id_apprenant" class="form-label">Id apprenant</label>
+                <input type="boolean" class="form-control" id="id_apprenant" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Modifier</button>
+        </form>
+
+        <div id="message" class="mt-3"></div>
+        <a href="/presence" class="btn btn-secondary mt-3">Retour à la liste</a>
+    </div>
+
+    <script>
+        const form = document.getElementById('modifierForm');
+        const messageDiv = document.getElementById('message');
+
+        // Récupérer l'ID de la présence depuis l'URL
+        const urlParts = window.location.pathname.split('/');
+        const presenceId = urlParts[urlParts.length - 1];
+
+        // Fonction pour pré-remplir le formulaire
+        async function loadPresence() {
+            try {
+                const res = await fetch(`/api/presence/${presenceId}`);
+                const presence = await res.json();
+
+                document.getElementById('presence').value = presence.presence|| '';
+            } catch (err) {
+                messageDiv.innerHTML = `<div class="alert alert-danger">Erreur : ${err.message}</div>`;
+            }
+        }
+
+        // Envoi du formulaire pour modifier la présence
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const presenceData = {
+                presence: document.getElementById('presence').value || ''
+            };
+
+            try {
+                const response = await fetch(`/api/presence/${presenceId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(presenceData)
+                });
+
+                if (response.ok) {
+                    messageDiv.innerHTML = `<div class="alert alert-success">Présence modifiée avec succès !</div>`;
+                } else {
+                    const err = await response.json();
+                    messageDiv.innerHTML = `<div class="alert alert-danger">Erreur : ${err.message}</div>`;
+                }
+            } catch (error) {
+                messageDiv.innerHTML = `<div class="alert alert-danger">Erreur : ${error.message}</div>`;
+            }
+        });
+
+        // Charger la presence au chargement de la page
+        loadPresence();
+    </script>
+
+  <%- include('../partials/footer'); %>
+</html>

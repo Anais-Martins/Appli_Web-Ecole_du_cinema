@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ajouter une matière</title>
+    <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navbar incluse -->
+    <%- include('../partials/navbar'); %>
+
+    <div class="container mt-5">
+        <h1 class="mb-4">Ajouter une matière</h1>
+
+        <form id="ajouterForm">
+
+            <div class="mb-3">
+                <label for="nom" class="form-label">Nom</label>
+                <input type="text" class="form-control" id="nom" >
+            </div>
+
+
+            <button type="submit" class="btn btn-primary">Ajouter</button>
+        </form>
+
+        <div id="message" class="mt-3"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('ajouterForm');
+        const messageDiv = document.getElementById('message');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Empêche l’envoi classique
+
+            const matiereData = {
+                nom: document.getElementById('nom').value,
+            };
+
+            try {
+                const response = await fetch('/api/matiere', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(matiereData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    messageDiv.innerHTML = `<div class="alert alert-success">Matière ajoutée avec succès !</div>`;
+                    form.reset();
+                } else {
+                    const err = await response.json();
+                    messageDiv.innerHTML = `<div class="alert alert-danger">Erreur : ${err.message}</div>`;
+                }
+            } catch (error) {
+                messageDiv.innerHTML = `<div class="alert alert-danger">Erreur : ${error.message}</div>`;
+            }
+        });
+    </script>
+
+   <%- include('../partials/footer'); %>
+</body>
+</html>

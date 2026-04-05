@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cours – Ecole du Cinéma de Toulouse</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+<body>
+
+  <%- include('../partials/navbar') %>
+
+  <main>
+    <section class="liste-section">
+      <div class="liste-header">
+        <h2 class="liste-titre">Cours</h2>
+        <div class="liste-actions">
+          <input id="searchInput" type="text" placeholder="Rechercher..." class="liste-search" oninput="fetchCours(1)">
+          <a href="/cours/ajouter" class="btn-liste-ajouter">+ Ajouter</a>
+        </div>
+      </div>
+
+      <div class="liste-wrapper">
+        <table class="liste-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Matière</th>
+              <th>Date</th>
+              <th>Début</th>
+              <th>Fin</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="coursTable">
+          </tbody>
+        </table>
+
+        <nav class="liste-pagination">
+          <ul id="pagination"></ul>
+        </nav>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../partials/footer') %>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let currentPage = 1;
+    let totalPages = 1;
+
+    async function fetchCours(page = 1) {
+      try {
+        const searchTerm = document.getElementById('searchInput').value || '';
+        const response = await fetch(`/api/cours?page=${page}&limit=10&search=${encodeURIComponent(searchTerm)}`);
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Erreur serveur.');
+
+        const cours = result.cours || [];
+        totalPages = result.pagination?.totalPages || 1;
+        currentPage = result.pagination?.page || 1;
+
+        renderTable(cours);
+        renderPagination();
+      } catch (error) {
+        document.getElementById('coursTable').innerHTML =
+          `<tr><td colspan="6" class="liste-vide">Erreur : ${error.message}</td></tr>`;
+      }
+    }
+
+    function renderTable(cours) {
+      const tbody = document.getElementById('coursTable');
+      tbody.innerHTML = '';
+
+      if (!cours.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="liste-vide">Aucun cours trouvé</td></tr>`;
+        return;
+      }
+
+      cours.forEach(c => {
+        const matiere = c.matiere ? c.matiere.nom : '—';
+        const date = c.date ? new Date(c.date).toLocaleDateString('fr-FR') : '—';
+        const debut = c.horaire_debut ? c.horaire_debut.substring(0, 5) : '—';
+        const fin = c.horaire_fin ? c.horaire_fin.substring(0, 5) : '—';
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${c.id_cours}</td>
+          <td>${matiere}</td>
+          <td>${date}</td>
+          <td>${debut}</td>
+          <td>${fin}</td>
+          <td class="liste-btns">
+            <a href="/cours/modifier/${c.id_cours}" class="btn-table-modifier">Modifier</a>
+            <button class="btn-table-supprimer-orange" onclick="supprimerCours(${c.id_cours})">Supprimer</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function renderPagination() {
+      const container = document.getElementById('pagination');
+      container.innerHTML = '';
+      for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = i === currentPage ? 'actif' : '';
+        li.innerHTML = `<button onclick="fetchCours(${i})">${i}</button>`;
+        container.appendChild(li);
+      }
+    }
+
+    async function supprimerCours(id) {
+      if (!confirm('Voulez-vous vraiment supprimer ce cours ?')) return;
+      try {
+        const response = await fetch(`/api/cours/${id}`, { method: 'DELETE' });
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'Erreur suppression');
+        }
+        fetchCours(currentPage);
+      } catch (err) {
+        alert('Erreur : ' + err.message);
+      }
+    }
+
+    fetchCours();
+  </script>
+</body>
+</html>

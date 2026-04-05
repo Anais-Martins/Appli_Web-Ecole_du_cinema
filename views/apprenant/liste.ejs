@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Apprenants – Ecole du Cinéma de Toulouse</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+<body>
+
+  <%- include('../partials/navbar') %>
+
+  <main>
+    <section class="liste-section">
+      <div class="liste-header">
+        <h2 class="liste-titre">Apprenants</h2>
+        <div class="liste-actions">
+          <input id="searchInput" type="text" placeholder="Rechercher..." class="liste-search" oninput="fetchApprenants(1)">
+          <a href="/apprenant/ajouter" class="btn-liste-ajouter">+ Ajouter</a>
+        </div>
+      </div>
+
+      <div class="liste-wrapper">
+        <table class="liste-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Prénom</th>
+              <th>Nom</th>
+              <th>E-mail</th>
+              <th>Téléphone</th>
+              <th>Formation(s)</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="apprenantTable">
+          </tbody>
+        </table>
+
+        <nav class="liste-pagination">
+          <ul id="pagination"></ul>
+        </nav>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../partials/footer') %>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let currentPage = 1;
+    let totalPages = 1;
+
+    async function fetchApprenants(page = 1) {
+      try {
+        const searchTerm = document.getElementById('searchInput').value || '';
+        const response = await fetch(`/api/apprenant?page=${page}&limit=10&search=${encodeURIComponent(searchTerm)}`);
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Erreur serveur.');
+
+        const apprenants = result.apprenants || [];
+        totalPages = result.pagination?.totalPages || 1;
+        currentPage = result.pagination?.page || 1;
+
+        renderTable(apprenants);
+        renderPagination();
+      } catch (error) {
+        document.getElementById('apprenantTable').innerHTML =
+          `<tr><td colspan="7" class="liste-vide">Erreur : ${error.message}</td></tr>`;
+      }
+    }
+
+    async function fetchFormations(idApprenant) {
+      try {
+        const response = await fetch(`/api/apprenant/${idApprenant}/formations`);
+        if (!response.ok) return '—';
+        const data = await response.json();
+        if (!data.length) return '—';
+        return data.map(f => f.nom).join(', ');
+      } catch {
+        return '—';
+      }
+    }
+
+    async function renderTable(apprenants) {
+      const tbody = document.getElementById('apprenantTable');
+      tbody.innerHTML = '';
+
+      if (!apprenants.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="liste-vide">Aucun apprenant trouvé</td></tr>`;
+        return;
+      }
+
+      for (const a of apprenants) {
+        const formations = await fetchFormations(a.id_apprenant);
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${a.id_apprenant}</td>
+          <td>${a.prenom}</td>
+          <td>${a.nom}</td>
+          <td>${a.email || '—'}</td>
+          <td>${a.telephone || '—'}</td>
+          <td>${formations}</td>
+          <td class="liste-btns">
+            <a href="/apprenant/modifier/${a.id_apprenant}" class="btn-table-modifier">Modifier</a>
+            <button class="btn-table-supprimer-orange" onclick="supprimerApprenant(${a.id_apprenant})">Supprimer</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      }
+    }
+
+    function renderPagination() {
+      const container = document.getElementById('pagination');
+      container.innerHTML = '';
+      for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = i === currentPage ? 'actif' : '';
+        li.innerHTML = `<button onclick="fetchApprenants(${i})">${i}</button>`;
+        container.appendChild(li);
+      }
+    }
+
+    async function supprimerApprenant(id) {
+      if (!confirm('Voulez-vous vraiment supprimer cet apprenant ?')) return;
+      try {
+        const response = await fetch(`/api/apprenant/${id}`, { method: 'DELETE' });
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'Erreur suppression');
+        }
+        fetchApprenants(currentPage);
+      } catch (err) {
+        alert('Erreur : ' + err.message);
+      }
+    }
+
+    fetchApprenants();
+  </script>
+</body>
+</html>

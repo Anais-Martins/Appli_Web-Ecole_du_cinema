@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mon espace formateur – Ecole du Cinéma de Toulouse</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+<body>
+
+  <%- include('partials/navbar') %>
+
+  <main>
+    <section class="dashboard-apprenant-section">
+      <h2 class="dashboard-titre">Mon espace formateur</h2>
+
+      <!-- Boutons de navigation -->
+      <div class="dashboard-apprenant-nav">
+        <button class="btn-onglet actif" onclick="afficherOnglet('cours', this)">Mes cours</button>
+        <button class="btn-onglet" onclick="afficherOnglet('eleves', this)">Mes élèves</button>
+        <button class="btn-onglet" onclick="afficherOnglet('notes', this)">Notes</button>
+      </div>
+
+      <!-- Onglet Mes cours -->
+      <div id="onglet-cours" class="onglet-content">
+        <div class="liste-wrapper">
+          <table class="liste-table">
+            <thead>
+              <tr>
+                <th>Matière</th>
+                <th>Date</th>
+                <th>Début</th>
+                <th>Fin</th>
+              </tr>
+            </thead>
+            <tbody id="coursTable">
+              <tr><td colspan="4" class="liste-vide">Chargement...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Onglet Mes élèves -->
+      <div id="onglet-eleves" class="onglet-content" style="display:none">
+        <div class="liste-wrapper">
+          <table class="liste-table">
+            <thead>
+              <tr>
+                <th>Prénom</th>
+                <th>Nom</th>
+                <th>E-mail</th>
+                <th>Formation</th>
+                <th>Avis sur la formation</th>
+              </tr>
+            </thead>
+            <tbody id="elevesTable">
+              <tr><td colspan="5" class="liste-vide">Chargement...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Onglet Notes -->
+      <div id="onglet-notes" class="onglet-content" style="display:none">
+
+        <!-- Bouton ajouter une note -->
+        <div class="liste-header" style="margin-bottom: 1rem;">
+          <button class="btn-liste-ajouter" onclick="afficherFormulaireNote()">+ Ajouter une note</button>
+        </div>
+
+        <!-- Formulaire ajout / modif note -->
+        <div id="note-formulaire" style="display:none; margin-bottom: 1.5rem;">
+          <div class="formulaire-card">
+            <div class="formulaire-card-header" id="note-form-titre">Ajouter une note</div>
+            <div class="formulaire-card-body">
+              <div id="note-message"></div>
+              <input type="hidden" id="note-id">
+
+              <div class="formulaire-champ">
+                <label for="note-apprenant">Apprenant</label>
+                <select id="note-apprenant" class="formulaire-select">
+                  <option value="">-- Sélectionner un apprenant --</option>
+                </select>
+              </div>
+
+              <div class="formulaire-champ">
+                <label for="note-matiere">Matière</label>
+                <select id="note-matiere" class="formulaire-select">
+                  <option value="">-- Sélectionner une matière --</option>
+                </select>
+              </div>
+
+              <div class="formulaire-champ">
+                <label for="note-valeur">Note (sur 20)</label>
+                <input type="number" id="note-valeur" class="formulaire-champ" min="0" max="20" placeholder="ex: 14" style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:4px;">
+              </div>
+
+              <div class="formulaire-champ">
+                <label for="note-date">Date</label>
+                <input type="date" id="note-date" class="formulaire-champ" style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:4px;">
+              </div>
+
+              <div class="formulaire-champ">
+                <label for="note-type">Type d'évaluation</label>
+                <select id="note-type" class="formulaire-select">
+                  <option value="">-- Sélectionner --</option>
+                  <option value="eval_simple">Évaluation simple</option>
+                  <option value="DM">Devoir maison</option>
+                  <option value="oral">Oral</option>
+                  <option value="partiel">Partiel</option>
+                </select>
+              </div>
+
+              <div class="formulaire-footer">
+                <button class="btn-formulaire-submit" onclick="soumettreNote()">Enregistrer</button>
+                <button class="btn-formulaire-retour" onclick="masquerFormulaireNote()">Annuler</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tableau des notes -->
+        <div class="liste-wrapper">
+          <table class="liste-table">
+            <thead>
+              <tr>
+                <th>Apprenant</th>
+                <th>Matière</th>
+                <th>Note</th>
+                <th>Date</th>
+                <th>Type d'évaluation</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="notesTable">
+              <tr><td colspan="6" class="liste-vide">Chargement...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <%- include('partials/footer') %>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const idFormateur = <%= user ? user.id_formateur : 'null' %>;
+
+    // --- Navigation onglets ---
+    function afficherOnglet(nom, btn) {
+      document.querySelectorAll('.onglet-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.btn-onglet').forEach(el => el.classList.remove('actif'));
+      document.getElementById('onglet-' + nom).style.display = 'block';
+      btn.classList.add('actif');
+    }
+
+    // --- Mes cours ---
+    async function fetchCours() {
+      try {
+        const res = await fetch(`/api/formateur/${idFormateur}/cours`);
+        const cours = await res.json();
+        const tbody = document.getElementById('coursTable');
+
+        if (!cours.length) {
+          tbody.innerHTML = `<tr><td colspan="4" class="liste-vide">Aucun cours trouvé</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = '';
+        cours.forEach(c => {
+          const matiere = c.matiere ? c.matiere.nom : '—';
+          const date = c.date ? new Date(c.date).toLocaleDateString('fr-FR') : '—';
+          const debut = c.horaire_debut ? c.horaire_debut.substring(0, 5) : '—';
+          const fin = c.horaire_fin ? c.horaire_fin.substring(0, 5) : '—';
+          tbody.innerHTML += `
+            <tr>
+              <td>${matiere}</td>
+              <td>${date}</td>
+              <td>${debut}</td>
+              <td>${fin}</td>
+            </tr>`;
+        });
+      } catch (err) {
+        document.getElementById('coursTable').innerHTML =
+          `<tr><td colspan="4" class="liste-vide">Erreur : ${err.message}</td></tr>`;
+      }
+    }
+
+    // --- Mes élèves ---
+    async function fetchEleves() {
+      try {
+        const res = await fetch(`/api/formateur/${idFormateur}/apprenants`);
+        const eleves = await res.json();
+        const tbody = document.getElementById('elevesTable');
+
+        if (!eleves.length) {
+          tbody.innerHTML = `<tr><td colspan="5" class="liste-vide">Aucun élève trouvé</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = '';
+        eleves.forEach(e => {
+          const formation = e.formation ? e.formation.nom : '—';
+          const avis = e.avis ? e.avis.contenu : '<span style="color:#aaa; font-style:italic;">Pas d\'avis</span>';
+          tbody.innerHTML += `
+            <tr>
+              <td>${e.prenom}</td>
+              <td>${e.nom}</td>
+              <td>${e.email || '—'}</td>
+              <td>${formation}</td>
+              <td>${avis}</td>
+            </tr>`;
+        });
+      } catch (err) {
+        document.getElementById('elevesTable').innerHTML =
+          `<tr><td colspan="5" class="liste-vide">Erreur : ${err.message}</td></tr>`;
+      }
+    }
+
+    // --- Notes ---
+    let elevesDuFormateur = [];
+
+    async function fetchNotes() {
+      try {
+        const res = await fetch(`/api/formateur/${idFormateur}/notes`);
+        const notes = await res.json();
+        const tbody = document.getElementById('notesTable');
+
+        if (!notes.length) {
+          tbody.innerHTML = `<tr><td colspan="6" class="liste-vide">Aucune note enregistrée</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = '';
+        notes.forEach(n => {
+          const apprenant = n.apprenant ? `${n.apprenant.prenom} ${n.apprenant.nom}` : '—';
+          const matiere = n.matiere ? n.matiere.nom : '—';
+          const date = n.date ? new Date(n.date).toLocaleDateString('fr-FR') : '—';
+          tbody.innerHTML += `
+            <tr>
+              <td>${apprenant}</td>
+              <td>${matiere}</td>
+              <td>${n.note}/20</td>
+              <td>${date}</td>
+              <td>${n.type_eval || '—'}</td>
+              <td>
+                <button class="btn-table-modifier" onclick="modifierNote(${n.id_note}, ${n.id_apprenant}, ${n.id_matiere}, ${n.note}, '${n.date ? n.date.substring(0,10) : ''}', '${n.type_eval}')">Modifier</button>
+                <button class="btn-table-supprimer-orange" onclick="supprimerNote(${n.id_note})">Supprimer</button>
+              </td>
+            </tr>`;
+        });
+      } catch (err) {
+        document.getElementById('notesTable').innerHTML =
+          `<tr><td colspan="6" class="liste-vide">Erreur : ${err.message}</td></tr>`;
+      }
+    }
+
+    async function chargerSelectsNotes() {
+      // Charger les matières du formateur (uniquement les siennes)
+      try {
+        const fmRes = await fetch(`/api/formateur_matiere?id_formateur=${idFormateur}&limit=100`);
+        const fmJson = await fmRes.json();
+        const fmData = fmJson.formateur_matiere || fmJson; // gère les deux formats
+        const selectMatiere = document.getElementById('note-matiere');
+        selectMatiere.innerHTML = '<option value="">-- Sélectionner une matière --</option>';
+        fmData.forEach(fm => {
+          if (fm.matiere) {
+            selectMatiere.innerHTML += `<option value="${fm.matiere.id_matiere}">${fm.matiere.nom}</option>`;
+          }
+        });
+      } catch (err) {
+        console.error('Erreur chargement matières :', err.message);
+      }
+
+      // Charger les élèves du formateur
+      try {
+        const elevRes = await fetch(`/api/formateur/${idFormateur}/apprenants`);
+        elevesDuFormateur = await elevRes.json();
+        const selectApprenant = document.getElementById('note-apprenant');
+        selectApprenant.innerHTML = '<option value="">-- Sélectionner un apprenant --</option>';
+        const seen = new Set();
+        elevesDuFormateur.forEach(e => {
+          if (!seen.has(e.id_apprenant)) {
+            seen.add(e.id_apprenant);
+            selectApprenant.innerHTML += `<option value="${e.id_apprenant}">${e.prenom} ${e.nom}</option>`;
+          }
+        });
+      } catch (err) {
+        console.error('Erreur chargement élèves :', err.message);
+      }
+    }
+
+    function afficherFormulaireNote() {
+      document.getElementById('note-id').value = '';
+      document.getElementById('note-form-titre').textContent = 'Ajouter une note';
+      document.getElementById('note-apprenant').value = '';
+      document.getElementById('note-matiere').value = '';
+      document.getElementById('note-valeur').value = '';
+      document.getElementById('note-date').value = '';
+      document.getElementById('note-type').value = '';
+      document.getElementById('note-message').innerHTML = '';
+      document.getElementById('note-formulaire').style.display = 'block';
+      document.getElementById('note-formulaire').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function masquerFormulaireNote() {
+      document.getElementById('note-formulaire').style.display = 'none';
+    }
+
+    function modifierNote(id, id_apprenant, id_matiere, note, date, type_eval) {
+      document.getElementById('note-id').value = id;
+      document.getElementById('note-form-titre').textContent = 'Modifier une note';
+      document.getElementById('note-apprenant').value = id_apprenant;
+      document.getElementById('note-matiere').value = id_matiere;
+      document.getElementById('note-valeur').value = note;
+      document.getElementById('note-date').value = date;
+      document.getElementById('note-type').value = type_eval;
+      document.getElementById('note-message').innerHTML = '';
+      document.getElementById('note-formulaire').style.display = 'block';
+      document.getElementById('note-formulaire').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function soumettreNote() {
+      const messageDiv = document.getElementById('note-message');
+      const id = document.getElementById('note-id').value;
+      const id_apprenant = document.getElementById('note-apprenant').value;
+      const id_matiere = document.getElementById('note-matiere').value;
+      const note = document.getElementById('note-valeur').value;
+      const date = document.getElementById('note-date').value;
+      const type_eval = document.getElementById('note-type').value;
+
+      if (!id_apprenant || !id_matiere || !note || !date || !type_eval) {
+        messageDiv.innerHTML = `<p class="formulaire-erreur">Veuillez remplir tous les champs.</p>`;
+        return;
+      }
+
+      try {
+        const url = id ? `/api/formateur/${idFormateur}/notes/${id}` : `/api/formateur/${idFormateur}/notes`;
+        const method = id ? 'PUT' : 'POST';
+        const body = { id_apprenant, id_matiere, note, date, type_eval };
+
+        const response = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        if (response.ok) {
+          messageDiv.innerHTML = `<p class="formulaire-succes">Note enregistrée !</p>`;
+          setTimeout(() => {
+            masquerFormulaireNote();
+            fetchNotes();
+          }, 800);
+        } else {
+          const err = await response.json();
+          messageDiv.innerHTML = `<p class="formulaire-erreur">Erreur : ${err.message}</p>`;
+        }
+      } catch (err) {
+        messageDiv.innerHTML = `<p class="formulaire-erreur">Erreur : ${err.message}</p>`;
+      }
+    }
+
+    async function supprimerNote(id_note) {
+      if (!confirm('Voulez-vous vraiment supprimer cette note ?')) return;
+      try {
+        const response = await fetch(`/api/formateur/${idFormateur}/notes/${id_note}`, { method: 'DELETE' });
+        if (response.ok) fetchNotes();
+        else alert('Erreur lors de la suppression.');
+      } catch (err) {
+        alert('Erreur : ' + err.message);
+      }
+    }
+
+    // Chargement initial
+    fetchCours();
+    fetchEleves();
+    fetchNotes();
+    chargerSelectsNotes();
+  </script>
+</body>
+</html>

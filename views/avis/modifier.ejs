@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Modifier l'avis</title>
+    <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <%- include('../partials/navbar'); %>
+
+    <div class="container mt-5">
+        <h1 class="mb-4">Modifier l'avis</h1>
+
+        <form id="modifierForm">
+            <div class="mb-3">
+                <label for="id_avis" class="form-label">Id avis</label>
+                <input type="number" class="form-control" id="id_avis" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="contenu" class="form-label">Contenu</label>
+                <input type="text" class="form-control" id="contenu" required>
+            </div>
+            
+            <div class="mb-3">
+                <label for="id_formation" class="form-label">Id_formation</label>
+                <input type="number" class="form-control" id="id_formation" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="id_apprenant" class="form-label">Id_apprenant</label>
+                <input type="number" class="form-control" id="id_apprenant" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Modifier</button>
+        </form>
+
+        <div id="message" class="mt-3"></div>
+        <a href="/avis" class="btn btn-secondary mt-3">Retour à la liste</a>
+    </div>
+
+    <script>
+        const form = document.getElementById('modifierForm');
+        const messageDiv = document.getElementById('message');
+
+        // Récupérer l'ID de l'avis depuis l'URL
+        const urlParts = window.location.pathname.split('/');
+        const avisId = urlParts[urlParts.length - 1];
+
+        // Fonction pour pré-remplir le formulaire
+        async function loadAvis() {
+            try {
+                const res = await fetch(`/api/avis/${avisId}`);
+                const avis = await res.json();
+
+                document.getElementById('id_avis').value = avis.id_avis;
+                document.getElementById('contenu').value = avis.contenu;
+                document.getElementById('id_formation').value = avis.id_formation;
+                document.getElementById('id_apprenant').value = avis.id_apprenant || '';
+                 
+            } catch (err) {
+                messageDiv.innerHTML = `<div class="alert alert-danger">Erreur : ${err.message}</div>`;
+            }
+        }
+
+        // Envoi du formulaire pour modifier l'avis
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const avisData = {
+                id_avis: document.getElementById('id_avis').value,
+                contenu: document.getElementById('contenu').value,
+                id_formation: document.getElementById('id_formation').value,
+                id_apprenant: document.getElementById('id_apprenant').value || ''
+            };
+
+            try {
+                const response = await fetch(`/api/avis/${avisId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(avisData)
+                });
+
+                if (response.ok) {
+                    messageDiv.innerHTML = `<div class="alert alert-success">Avis modifié avec succès !</div>`;
+                } else {
+                    const err = await response.json();
+                    messageDiv.innerHTML = `<div class="alert alert-danger">Erreur : ${err.message}</div>`;
+                }
+            } catch (error) {
+                messageDiv.innerHTML = `<div class="alert alert-danger">Erreur : ${error.message}</div>`;
+            }
+        });
+
+        // Charger l'avis au chargement de la page
+        loadAvis();
+    </script>
+
+  <%- include('../partials/footer'); %>
+</html>

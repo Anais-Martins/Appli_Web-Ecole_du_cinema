@@ -1,0 +1,56 @@
+<!-- partials/navbar.ejs -->
+<div class="header-sticky">
+
+  <!-- Bannière -->
+  <header class="banniere">
+    <h1>Ecole du Cinéma de Toulouse</h1>
+  </header>
+
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-md navbar-cinema">
+    <div class="container-fluid">
+      <button class="navbar-toggler" type="button"
+              data-bs-toggle="collapse" data-bs-target="#navMenu"
+              aria-controls="navMenu" aria-expanded="false"
+              aria-label="Ouvrir le menu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navMenu">
+        <!-- Liens à gauche -->
+        <ul class="navbar-nav nav-left me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="/">Accueil</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/formations">Formations</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/contact">Contact</a>
+          </li>
+          <% if (user) { %>
+          <li class="nav-item">
+            <a class="nav-link nav-link-dashboard" href="/dashboard/<%= user.role %>">Dashboard</a>
+          </li>
+          <% } %>
+        </ul>
+        <!-- Droite : connecté ou non -->
+        <ul class="navbar-nav nav-right">
+          <% if (user) { %>
+          <li class="nav-item nav-user">
+            <span class="nav-username"><%= user.username %></span>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link connexion-btn" href="/deconnexion">Déconnexion</a>
+          </li>
+          <% } else { %>
+          <li class="nav-item">
+            <a class="nav-link connexion-btn" href="/connexion">Connexion</a>
+          </li>
+          <% } %>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+</div>

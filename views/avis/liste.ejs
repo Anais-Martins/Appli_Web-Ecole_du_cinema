@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Liste des avis</title>
+  <!-- Inclusion du CSS Bootstrap -->
+  <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
+</head>
+<body>
+  <!-- Inclusion de la barre de navigation -->
+  <%- include('../partials/navbar'); %>
+
+  <div class="container mt-5">
+    <h1 class="mb-4">Liste des avis</h1>
+
+    <div class="d-flex justify-content-between mb-3">
+      <!-- Bouton d'ajout -->
+      <a href="/avis/ajouter" class="btn btn-primary">Ajouter un avis</a>
+      <!-- Champ de recherche, déclenche une mise à jour automatique -->
+      <input id="searchInput" type="text" placeholder="Rechercher..." class="form-control w-25" oninput="fetchAvis(1)">
+    </div>
+
+    <!-- Tableau de données -->
+    <table class="table table-bordered table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th>Contenu</th>
+          <th>Id formation</th>
+          <th>Id apprenant</th>
+        </tr>
+      </thead>
+      <tbody id="avisTable">
+        <!-- Les avis seront injectés ici par JS -->
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <nav>
+      <ul class="pagination justify-content-center" id="pagination"></ul>
+    </nav>
+  </div>
+
+  <script>
+    // Variables globales pour stocker les données et l'état de la pagination
+    let allApprenant = [];
+    let currentPage = 1;
+    let totalPages = 1;
+
+    // Fonction pour récupérer les avis depuis l'API avec pagination et recherche
+    async function fetchAvis(page = 1) {
+      try {
+        const searchTerm = document.getElementById('searchInput').value || ''; // Récupère le mot-clé de recherche
+        const response = await fetch(`/api/avis?page=${page}&limit=5&search=${encodeURIComponent(searchTerm)}`); // Requête API
+        const result = await response.json();
+
+        if (!response.ok) throw new Error(result.message || 'Erreur serveur.');
+
+        // Stockage des résultats dans les variables globales
+        allAvis = result.avis || [];
+        totalPages = result.pagination?.totalPages || 1;
+        currentPage = result.pagination?.page || 1;
+
+        renderTable();       // Affiche les avis dans le tableau
+        renderPagination();  // Génère la pagination
+      } catch (error) {
+        console.error('Erreur API :', error);
+        const tbody = document.getElementById('apprenantTable');
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Erreur API : ${error.message}</td></tr>`;
+      }
+    }
+
+    // Fonction pour afficher les avis dans le tableau
+    function renderTable() {
+      const tbody = document.getElementById('avisTable');
+      tbody.innerHTML = '';  // Réinitialise le tableau
+
+      if (!allAvis.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center">Aucun avis trouvé</td></tr>`;
+        return;
+      }
+
+      allAvis.forEach(avis => {
+        const row = document.createElement('tr');
+        // Remplissage de chaque cellule avec les données de l'avis
+        row.innerHTML = `
+          <td>${avis.id_avis}</td>
+          <td>${avis.contenu}</td>
+          <td>${avis.id_formation}</td>
+          <td>${avis.id_apprenant}</td>
+          <td>
+            <a href="/avis/modifier/${avis.id}" class="btn btn-warning btn-sm">Modifier</a>
+            <button class="btn btn-danger btn-sm" onclick="supprimerAvis(${avis.id})">Supprimer</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Fonction pour créer les boutons de pagination
+    function renderPagination() {
+      const container = document.getElementById('pagination');
+      container.innerHTML = '';  // Réinitialise la pagination
+
+      for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = 'page-item' + (i === currentPage ? ' active' : ''); // Active la page actuelle
+        li.innerHTML = `<button class="page-link" onclick="fetchAvis(${i})">${i}</button>`;
+        container.appendChild(li);
+      }
+    }
+
+    // Fonction pour supprimer un avis
+    async function supprimerAvis(id) {
+      if (!confirm('Voulez-vous vraiment supprimer cet avis ?')) return; // Confirmation de l'utilisateur
+      try {
+        const response = await fetch(`/api/avis/${id}`, { method: 'DELETE' }); // Requête DELETE
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'Erreur suppression');
+        }
+        alert('Avis supprimé avec succès');
+        fetchAvis(currentPage); // Rafraîchit la liste après suppression
+      } catch (err) {
+        alert('Erreur : ' + err.message);
+      }
+    }
+
+    // Charger automatiquement les données au démarrage
+    fetchAvis();
+  </script>
+
+  <!-- Inclusion du pied de page -->
+  <%- include('../partials/footer'); %>
+</body>
+</html>

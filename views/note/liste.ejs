@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Liste des notes</title>
+  <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
+</head>
+<body>
+  <%- include('../partials/navbar'); %>
+
+  <div class="container mt-5">
+    <h1 class="mb-4">Liste des notes</h1>
+
+    <div class="d-flex justify-content-between mb-3">
+      <a href="/note/ajouter" class="btn btn-primary">Ajouter une note</a>
+      <input id="searchInput" type="text" placeholder="Rechercher..." class="form-control w-25" oninput="fetchNote(1)">
+    </div>
+
+    <table class="table table-bordered table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th>Note</th>
+          <th>Date</th>
+          <th>Type d'évaluation</th>
+          <th>Id matière</th>
+        </tr>
+      </thead>
+      <tbody id="noteTable"></tbody>
+    </table>
+
+    <nav>
+      <ul class="pagination justify-content-center" id="pagination"></ul>
+    </nav>
+  </div>
+
+  <script>
+    let allNote = [];
+    let currentPage = 1;
+    let totalPages = 1;
+
+    async function fetchNote(page = 1) {
+      try {
+        const searchTerm = document.getElementById('searchInput').value || '';
+        const res = await fetch(`/api/note?page=${page}&limit=5&search=${encodeURIComponent(searchTerm)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Erreur serveur');
+
+        allNote = data.note || [];
+        currentPage = data.pagination?.page || 1;
+        totalPages = data.pagination?.totalPages || 1;
+
+        renderTable();
+        renderPagination();
+      } catch (err) {
+        console.error('Erreur API :', err);
+        document.getElementById('noteTable').innerHTML =
+          `<tr><td colspan="4" class="text-center text-danger">Erreur API : ${err.message}</td></tr>`;
+      }
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('noteTable');
+      tbody.innerHTML = '';
+
+      if (!allNote.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center">Aucune note trouvée</td></tr>`;
+        return;
+      }
+
+      allNote.forEach(note => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${note.apprenant?.nom || ''} ${note.apprenant?.prenom || ''}</td>
+          <td>${note.cours?.nom || ''}</td>
+          <td>${note.note}</td>
+          <td>
+            <a href="/note/modifier/${note.id}" class="btn btn-warning btn-sm">Modifier</a>
+            <button class="btn btn-danger btn-sm" onclick="supprimerNote(${note.id})">Supprimer</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function renderPagination() {
+      const container = document.getElementById('pagination');
+      container.innerHTML = '';
+
+      for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = 'page-item' + (i === currentPage ? ' active' : '');
+        li.innerHTML = `<button class="page-link" onclick="fetchNote(${i})">${i}</button>`;
+        container.appendChild(li);
+      }
+    }
+
+    async function supprimerNote(id) {
+      if (!confirm('Voulez-vous vraiment supprimer cette note ?')) return;
+      try {
+        const res = await fetch(`/api/note/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.message || 'Erreur suppression');
+        }
+        alert('Note supprimée avec succès');
+        fetchNote(currentPage);
+      } catch (err) {
+        alert('Erreur : ' + err.message);
+      }
+    }
+
+    fetchNote();
+  </script>
+
+  <%- include('../partials/footer'); %>
+</body>
+</html>

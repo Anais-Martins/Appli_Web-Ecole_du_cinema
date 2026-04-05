@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Liste des contacts</title>
+  <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
+</head>
+<body>
+  <%- include('../partials/navbar'); %>
+
+  <div class="container mt-5">
+    <h1 class="mb-4">Liste des contacts</h1>
+
+    <div class="d-flex justify-content-between mb-3">
+      <a href="/contacts/ajouter" class="btn btn-primary">Ajouter un contact</a>
+      <input id="searchInput" type="text" placeholder="Rechercher..." class="form-control w-25" oninput="fetchContacts(1)">
+    </div>
+
+    <table class="table table-bordered table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th>Nom</th>
+          <th>Email</th>
+          <th>Téléphone</th>
+          <th>Photo</th>
+          <th>Fichier</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="contactsTable">
+        <!-- Les contacts seront injectés ici par JS -->
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <nav>
+      <ul class="pagination justify-content-center" id="pagination"></ul>
+    </nav>
+  </div>
+
+  <script>
+    let allContacts = [];
+    let currentPage = 1;
+    let totalPages = 1;
+
+    async function fetchContacts(page = 1) {
+      try {
+        const searchTerm = document.getElementById('searchInput').value || '';
+        const response = await fetch(`/api/contacts?page=${page}&limit=5&search=${encodeURIComponent(searchTerm)}`);
+        const result = await response.json();
+
+        if (!response.ok) throw new Error(result.message || 'Erreur serveur.');
+
+        allContacts = result.contacts || [];
+        totalPages = result.pagination?.totalPages || 1;
+        currentPage = result.pagination?.page || 1;
+
+        renderTable();
+        renderPagination();
+      } catch (error) {
+        console.error('Erreur API :', error);
+        const tbody = document.getElementById('contactsTable');
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Erreur API : ${error.message}</td></tr>`;
+      }
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('contactsTable');
+      tbody.innerHTML = '';
+
+      if (!allContacts.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center">Aucun contact trouvé</td></tr>`;
+        return;
+      }
+
+      allContacts.forEach(contact => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${contact.nom}</td>
+          <td>${contact.email}</td>
+          <td>${contact.telephone || ''}</td>
+          <td>${contact.photo ? `<img src="/uploads/${contact.photo}" width="50">` : ''}</td>
+          <td>${contact.fichier ? `<a href="/uploads/${contact.fichier}" target="_blank">Télécharger</a>` : ''}</td>
+          <td>
+            <a href="/contacts/modifier/${contact.id}" class="btn btn-warning btn-sm">Modifier</a>
+            <button class="btn btn-danger btn-sm" onclick="supprimerContact(${contact.id})">Supprimer</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function renderPagination() {
+      const container = document.getElementById('pagination');
+      container.innerHTML = '';
+
+      for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = 'page-item' + (i === currentPage ? ' active' : '');
+        li.innerHTML = `<button class="page-link" onclick="fetchContacts(${i})">${i}</button>`;
+        container.appendChild(li);
+      }
+    }
+
+    async function supprimerContact(id) {
+      if (!confirm('Voulez-vous vraiment supprimer ce contact ?')) return;
+
+      try {
+        const response = await fetch(`/api/contacts/${id}`, { method: 'DELETE' });
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'Erreur suppression');
+        }
+        alert('Contact supprimé avec succès');
+        fetchContacts(currentPage);
+      } catch (err) {
+        alert('Erreur : ' + err.message);
+      }
+    }
+
+    // Charger au démarrage
+    fetchContacts();
+  </script>
+
+  <%- include('../partials/footer'); %>
+</body>
+</html>
