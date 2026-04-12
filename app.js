@@ -137,13 +137,16 @@ app.use('/salle', salleRoutes);
 app.use('/api', apiAuthRouter); // POST /api/login, POST /api/register, POST /api/logout
 
 
-// 🏠 Page d'accueil (définition du title pour EJS)
+// 🏠 Page d'accueil (définition du titre pour EJS)
 app.get('/', (req, res) => {
   res.render('index', {
     title: 'Accueil - Ecole du Cinéma de Toulouse',
     user: req.user // pour afficher nom/prénom dans le navbar
   });
 });
+app.get('/mentions-legales', (req, res) => res.render('mentions-legales', { title: 'Mentions légales', user: req.user }));
+app.get('/politique-confidentialite', (req, res) => res.render('politique-confidentialite', { title: 'Politique de confidentialité', user: req.user }));
+app.get('/cgu', (req, res) => res.render('cgu', { title: 'CGU', user: req.user }));
 
 // ⚠️ Gestion des erreurs 404
 app.use((req, res, next) => {

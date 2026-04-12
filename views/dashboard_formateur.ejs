@@ -18,7 +18,7 @@
       <!-- Boutons de navigation -->
       <div class="dashboard-apprenant-nav">
         <button class="btn-onglet actif" onclick="afficherOnglet('cours', this)">Mes cours</button>
-        <button class="btn-onglet" onclick="afficherOnglet('eleves', this)">Mes élèves</button>
+        <button class="btn-onglet" onclick="afficherOnglet('apprenants', this)">Mes apprenants</button>
         <button class="btn-onglet" onclick="afficherOnglet('notes', this)">Notes</button>
       </div>
 
@@ -41,8 +41,8 @@
         </div>
       </div>
 
-      <!-- Onglet Mes élèves -->
-      <div id="onglet-eleves" class="onglet-content" style="display:none">
+      <!-- Onglet Mes apprenants -->
+      <div id="onglet-apprenants" class="onglet-content" style="display:none">
         <div class="liste-wrapper">
           <table class="liste-table">
             <thead>
@@ -54,7 +54,7 @@
                 <th>Avis sur la formation</th>
               </tr>
             </thead>
-            <tbody id="elevesTable">
+            <tbody id="apprenantsTable">
               <tr><td colspan="5" class="liste-vide">Chargement...</td></tr>
             </tbody>
           </table>
@@ -189,39 +189,39 @@
       }
     }
 
-    // --- Mes élèves ---
-    async function fetchEleves() {
+    // --- Mes apprenants ---
+    async function fetchApprenants() {
       try {
         const res = await fetch(`/api/formateur/${idFormateur}/apprenants`);
-        const eleves = await res.json();
-        const tbody = document.getElementById('elevesTable');
+        const apprenants = await res.json();
+        const tbody = document.getElementById('apprenantsTable');
 
-        if (!eleves.length) {
-          tbody.innerHTML = `<tr><td colspan="5" class="liste-vide">Aucun élève trouvé</td></tr>`;
+        if (!apprenants.length) {
+          tbody.innerHTML = `<tr><td colspan="5" class="liste-vide">Aucun apprenant trouvé</td></tr>`;
           return;
         }
 
         tbody.innerHTML = '';
-        eleves.forEach(e => {
-          const formation = e.formation ? e.formation.nom : '—';
-          const avis = e.avis ? e.avis.contenu : '<span style="color:#aaa; font-style:italic;">Pas d\'avis</span>';
+        apprenants.forEach(a => {
+          const formation = a.formation ? a.formation.nom : '—';
+          const avis = a.avis ? a.avis.contenu : '<span style="color:#aaa; font-style:italic;">Pas d\'avis</span>';
           tbody.innerHTML += `
             <tr>
-              <td>${e.prenom}</td>
-              <td>${e.nom}</td>
-              <td>${e.email || '—'}</td>
+              <td>${a.prenom}</td>
+              <td>${a.nom}</td>
+              <td>${a.email || '—'}</td>
               <td>${formation}</td>
               <td>${avis}</td>
             </tr>`;
         });
       } catch (err) {
-        document.getElementById('elevesTable').innerHTML =
+        document.getElementById('apprenantsTable').innerHTML =
           `<tr><td colspan="5" class="liste-vide">Erreur : ${err.message}</td></tr>`;
       }
     }
 
     // --- Notes ---
-    let elevesDuFormateur = [];
+    let apprenantsDuFormateur = [];
 
     async function fetchNotes() {
       try {
@@ -263,7 +263,7 @@
       try {
         const fmRes = await fetch(`/api/formateur_matiere?id_formateur=${idFormateur}&limit=100`);
         const fmJson = await fmRes.json();
-        const fmData = fmJson.formateur_matiere || fmJson; // gère les deux formats
+        const fmData = fmJson.formateur_matiere || fmJson;
         const selectMatiere = document.getElementById('note-matiere');
         selectMatiere.innerHTML = '<option value="">-- Sélectionner une matière --</option>';
         fmData.forEach(fm => {
@@ -275,21 +275,21 @@
         console.error('Erreur chargement matières :', err.message);
       }
 
-      // Charger les élèves du formateur
+      // Charger les apprenants du formateur
       try {
-        const elevRes = await fetch(`/api/formateur/${idFormateur}/apprenants`);
-        elevesDuFormateur = await elevRes.json();
+        const appRes = await fetch(`/api/formateur/${idFormateur}/apprenants`);
+        apprenantsDuFormateur = await appRes.json();
         const selectApprenant = document.getElementById('note-apprenant');
         selectApprenant.innerHTML = '<option value="">-- Sélectionner un apprenant --</option>';
         const seen = new Set();
-        elevesDuFormateur.forEach(e => {
-          if (!seen.has(e.id_apprenant)) {
-            seen.add(e.id_apprenant);
-            selectApprenant.innerHTML += `<option value="${e.id_apprenant}">${e.prenom} ${e.nom}</option>`;
+        apprenantsDuFormateur.forEach(a => {
+          if (!seen.has(a.id_apprenant)) {
+            seen.add(a.id_apprenant);
+            selectApprenant.innerHTML += `<option value="${a.id_apprenant}">${a.prenom} ${a.nom}</option>`;
           }
         });
       } catch (err) {
-        console.error('Erreur chargement élèves :', err.message);
+        console.error('Erreur chargement apprenants :', err.message);
       }
     }
 
@@ -376,7 +376,7 @@
 
     // Chargement initial
     fetchCours();
-    fetchEleves();
+    fetchApprenants();
     fetchNotes();
     chargerSelectsNotes();
   </script>
