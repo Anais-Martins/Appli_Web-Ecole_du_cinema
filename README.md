@@ -13,6 +13,19 @@ Stack : Node.js / Express / EJS / Bootstrap 5 / Sequelize / MySQL / HTTPS
 
 ---
 
+## Installation
+
+Le dossier `node_modules` n'est pas inclus dans le zip.  
+Avant de lancer l'application, installer les dépendances en exécutant dans le terminal :
+
+npm install
+
+Puis importer la base de données :
+
+mysql -u root -p centre_formations < centre_formations.sql
+
+---
+
 ## Lancement
 
 npm run dev
